@@ -1,10 +1,10 @@
-name: Build Vocal Flow (VST3)
+name: Build Vocal Flow (AU + VST3, macOS)
 
-on: 
-  push:   
+on:
+  push:
     branches: [main, master]
     tags: ['v*']
-  pull_request:   
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -12,54 +12,38 @@ permissions:
 
 jobs:
   build:
-    name: ${{ matrix.name }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: Windows
-            os: windows-latest
-          - name: macOS
-            os: macos-latest
+    name: macOS
+    runs-on: macos-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configure (Windows)
-        if: runner.os == 'Windows'
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
-
-      - name: Configure (macOS, universal arm64 + x86_64)
-        if: runner.os == 'macOS'
+      - name: Configure (universal arm64 + x86_64)
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
 
       - name: Build
         run: cmake --build build --config Release --parallel
 
-      - name: Package (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
+      - name: Package
         run: |
-          Compress-Archive -Path "build/VocalFlow_artefacts/Release/VST3/Vocal Flow.vst3" `
-                           -DestinationPath "VocalFlow-Windows-VST3.zip"
-
-      - name: Package (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          cd build/VocalFlow_artefacts/Release/VST3
-          ditto -c -k --keepParent "Vocal Flow.vst3" "$GITHUB_WORKSPACE/VocalFlow-macOS-VST3.zip"
+          cd build/VocalFlow_artefacts/Release
+          ditto -c -k --keepParent "VST3/Vocal Flow.vst3" "$GITHUB_WORKSPACE/VocalFlow-macOS-VST3.zip"
+          ditto -c -k --keepParent "AU/Vocal Flow.component" "$GITHUB_WORKSPACE/VocalFlow-macOS-AU.zip"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: VocalFlow-${{ matrix.name }}-VST3
-          path: VocalFlow-${{ matrix.name }}-VST3.zip
+          name: VocalFlow-macOS
+          path: |
+            VocalFlow-macOS-VST3.zip
+            VocalFlow-macOS-AU.zip
           if-no-files-found: error
 
       - name: Attach to GitHub Release (only on v* tags)
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: VocalFlow-${{ matrix.name }}-VST3.zip
+          files: |
+            VocalFlow-macOS-VST3.zip
+            VocalFlow-macOS-AU.zip
