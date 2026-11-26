@@ -16,7 +16,8 @@ juce_add_plugin(VocalFlow
     PRODUCT_NAME "Vocal Flow"
     PLUGIN_MANUFACTURER_CODE Vflo
     PLUGIN_CODE Vflw
-    FORMATS VST3
+    FORMATS AU VST3
+    AU_MAIN_TYPE kAudioUnitType_Effect
     VST3_CATEGORIES Fx
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
