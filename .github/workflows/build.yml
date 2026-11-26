@@ -4,7 +4,56 @@ on:
   push:
     branches: [main, master]
     tags: ['v*']
+  pull_request:name: Build Vocal Flow (AU + VST3, macOS)
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write   # necesario para adjuntar los .zip a una Release cuando se sube un tag
+
+jobs:
+  build:
+    name: macOS
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure (universal arm64 + x86_64)
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Package
+        run: |
+          cd build/VocalFlow_artefacts/Release
+          ditto -c -k --keepParent "VST3/Vocal Flow.vst3" "$GITHUB_WORKSPACE/VocalFlow-macOS-VST3.zip"
+          ditto -c -k --keepParent "AU/Vocal Flow.component" "$GITHUB_WORKSPACE/VocalFlow-macOS-AU.zip"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VocalFlow-macOS
+          path: |
+            VocalFlow-macOS-VST3.zip
+            VocalFlow-macOS-AU.zip
+          if-no-files-found: error
+
+      - name: Attach to GitHub Release (only on v* tags)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            VocalFlow-macOS-VST3.zip
+            VocalFlow-macOS-AU.zip
+
   workflow_dispatch:
 
 permissions:
